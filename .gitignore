@@ -11,6 +11,9 @@
 *.so.*
 *.dylib
 
+# Raw binary images
+*.bin
+
 # Executables
 *.exe
 *.out
