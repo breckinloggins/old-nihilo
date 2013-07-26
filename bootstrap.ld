@@ -1,11 +1,9 @@
-ENTRY(_Reset)
+MEMORY
+{
+	rom : ORIGIN = 0x00010000, LENGTH = 32K
+}
+
 SECTIONS
 {
-	. = 0x10000;
-	.startup . : { startup.o(.text) }
-	.text : { *(.text) }
-	.data : { *(.data) }
-	.bss : { *(.bss) }
-	. = . + 0x1000; /* 4kb of stack memory */
-	stack_top = .;
+	.text : { *(.text*) } > rom
 }

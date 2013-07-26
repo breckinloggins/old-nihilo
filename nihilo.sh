@@ -10,4 +10,4 @@ rm bootstrap.elf
 rm startup.o
 rm bootstrap.o
 
-qemu-system-arm -machine versatilepb -nographic -kernel bootstrap.bin
+qemu-system-arm -machine versatilepb -m 128M -nographic -kernel bootstrap.bin

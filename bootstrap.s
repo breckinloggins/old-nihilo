@@ -4,7 +4,8 @@
 	.code 32
 
 @ Prints the string pointed to by r0 to the UART
-	.global print_uart0
+	.align 2
+	.global print_str_uart0
 print_str_uart0:
 	push 	{r0-r3, lr}
 	@ This routine allows us to print onto UART0DR
@@ -22,6 +23,7 @@ print_str_uart0_loop:
 	
 	pop 	{r0-r3, pc}
 
+	.align 2
 @ Prints the hexadecimal value in r0 to the UART
 print_hex_uart0:
 	push 	{r0-r3, lr}
@@ -37,13 +39,17 @@ print_hex_uart0:
 	
 	pop 	{r0-r3, pc}
 
+	.align 2
 @ IRQ Handler
 	.global IRQ_Handler
 IRQ_Handler:
+	push 	{lr}
 	ldr 	r0, =IRQ_STRING
 	bl 		print_str_uart0
+	pop 	{lr}
 	subs	pc, lr, #4
 	
+	.align 2
 @ MAIN - Where it all begins
 	.global nihilo_entry
 	@ This is the main entry point from startup.s
@@ -55,44 +61,52 @@ nihilo_entry:
 	@bl 		print_hex_uart0
 
 	@ Get the UART0 interrupt handler going
-	/*
-	ldr 	r0, =PIC_INTENABLE_ADR
-	ldr 	r1, =PIC_UART_MASK
-	str 	r1, [r0, #0]
+	ldr 	r0, =PIC_ADR
+	ldr 	r0, [r0, #0x10]			@ Control reg
+	mov 	r1, #1				@ Enable UART0
+	lsl 	r1, r1, #12
+	str 	r1, [r0, #0x10]
 
-	ldr 	r0, =UART0_IMSC_ADR
-	ldr 	r1, =UART0_RXIM_MASK
-	str 	r1, [r0, #0]
-	*/
-nihilo_repeat:
-	ldr 	r2, =UART0_ADR
-	ldr 	r2, [r2, #0]
-	mov		r1, r2
+	ldr 	r0, =UART0_ADR
+	ldr 	r0, [r0, #0x38]
+	mov 	r1, #1				@ UART RXIM Mask
+	lsl 	r1, r1, #4
+	ldr 	r1, [r1]
+	str 	r1, [r0, #0x38]
+	
+	@ Switch to user mode
+	msr 	cpsr, #0x10
 
-	ldr 	r0, =DBG_1
+	ldr 	r0, =USER_STR
 	bl 		print_str_uart0
+	
+	@ swi 0x123
+	@ svc 	0x5
 
-	str 	r1, [r2, #0]
-	b 		nihilo_repeat
+	b .
+
 
 @ --- Versatile PB Memory Map ---
+	.align 2
 	.section	.rodata
 
 @ PrimeCell PL190 Vectored Interrupt Controller (PIC)
 PIC_ADR:			.word 	0x10140000 
-PIC_INTENABLE_ADR:	.word	=PIC_ADR + 0x10
-PIC_UART_MASK:		.word	1 << 12
 
 @ PrimeCell PL011 UART 0
 UART0_ADR:			.word 	0x101F1000
-UART0_IMSC_ADR:		.word	=UART0_ADR + 0x38
-UART0_RXIM_MASK:	.word	1 << 4
 
 @ -- Global Variables ---
 
 	.section 	.rodata.str1.4, "aMS",%progbits,1
 WELCOME_STR:	.ascii	"Nihilo\012\000"
+USER_STR:		.ascii 	"Switched to user mode\012\000"
 IRQ_STRING:		.ascii 	"IRQ\012\000"
 HEX_PREFIX_STR:	.ascii  "0x\000"
 
 DBG_1:			.ascii 	"Got here 1\012\000"
+
+	.global EXC_RESET_STR
+	.global EXC_SWI_STR
+EXC_RESET_STR:	.ascii	"Reset handler\012\000"
+EXC_SWI_STR:	.ascii 	"SWI Handler\012\000"
